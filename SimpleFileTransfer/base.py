@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+import pickle
 import asyncio
+import struct
 from .message import *
 
-class SimpleFileTransferBase:
+class SimpleFileTransferBase(asyncio.Protocol):
        
     def __init__(self):
         self.rcvbuf = bytearray()
