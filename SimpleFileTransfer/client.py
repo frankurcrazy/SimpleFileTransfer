@@ -10,6 +10,7 @@ import os
 
 from .message import *
 from .handler import SimpleFileTransferClientHandler
+from .handler import SimpleFileTransferClientMessageHandler as cMsgHandler
 from .base import SimpleFileTransferBase
 
 class SimpleFileTransferClient(asyncio.Protocol, SimpleFileTransferBase):
@@ -17,6 +18,7 @@ class SimpleFileTransferClient(asyncio.Protocol, SimpleFileTransferBase):
         super().__init__()
 
         self.handler = SimpleFileTransferClientHandler(self)
+        self.msg_handler = cMsgHandler(self)
         self.task = task
         
     def pause_writing(self):
@@ -26,27 +28,7 @@ class SimpleFileTransferClient(asyncio.Protocol, SimpleFileTransferBase):
         self.pause = False
     
     def message_received(self, msg):
-        action = msg[SimpleFileTransferMessageField.ACTION] 
-
-        if action == SimpleFileTransferActionType.TASK_DONE:
-            self.connection_lost(None)
-
-        if action == SimpleFileTransferActionType.LIST_DIR:
-            path = msg[SimpleFileTransferMessageField.PATH]
-            files = msg[SimpleFileTransferMessageField.DATA]
-
-            print("Listing of {0}:".format(path))
-            for file in files:
-                stat_string = "{mod:10s}\t{uid:5d}\t{gid:5d}\t{size:10d}".format( \
-                    mod = stat.filemode(files[file].st_mode),
-                    uid = files[file].st_uid,
-                    gid = files[file].st_gid,
-                    size = files[file].st_size)
-                    
-                print("{0}\t{1}".format(stat_string, file))
-
-        if action == SimpleFileTransferActionType.ERROR:
-            print(msg[SimpleFileTransferMessageField.MSG])
+        self.msg_handler.dispatch(msg)
 
     def decode_msgs(self):
         while len(self.rcvbuf) > 4:
